@@ -1,5 +1,6 @@
 import { RefObject, useEffect, useState } from 'react';
 import * as faceapi from 'face-api.js';
+import randomstring from '@/lib/randomstring';
 
 const useFaceDetection = () => {
   const [detection, setDetection] = useState<faceapi.FaceDetection | null>(
@@ -37,10 +38,34 @@ const useFaceDetection = () => {
       return;
     }
 
+    const faceName = randomstring(6);
+    const labeledDescriptor = new faceapi.LabeledFaceDescriptors(faceName, [
+      result.descriptor,
+    ]);
+    console.log('result', labeledDescriptor);
+
     setDetection(result.detection);
+
+    return { result, labeledDescriptor };
   };
 
-  return { detection, getDescriptors };
+  const matchFace = async (
+    currentDescriptors: Float32Array,
+    descriptorsFromDB: Float32Array[],
+  ) => {
+    console.log('pöö', descriptorsFromDB, 'hep', currentDescriptors);
+    if (descriptorsFromDB && descriptorsFromDB.length > 0) {
+      const faceMatcher = new faceapi.FaceMatcher(
+        descriptorsFromDB.map((descriptor) => {
+          return faceapi.LabeledFaceDescriptors.fromJSON(descriptor);
+        }),
+      );
+      console.log('mätser', faceMatcher);
+      return faceMatcher.matchDescriptor(currentDescriptors);
+    }
+  };
+
+  return { detection, getDescriptors, matchFace };
 };
 
 export { useFaceDetection };
